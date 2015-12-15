@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">SwpieView</string>
+
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="action_settings">Action settings</string>
+    <string name="start_stop_button">Start</string>
+</resources>
