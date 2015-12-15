@@ -8,8 +8,6 @@ import android.content.ContentResolver;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.database.Cursor;
-import android.gesture.Gesture;
-import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -18,15 +16,11 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
-import android.widget.Filter;
-import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.felipecsl.gifimageview.library.GifImageView;
 import com.nononsenseapps.filepicker.FilePickerActivity;
@@ -225,14 +219,16 @@ public class ImageViewActivity extends AppCompatActivity{
 
                 //Add images in the same directory as the selected image to the list
                 String imageFilename = getRealPathFromURI(imageURI);
-                File path = new File(imageFilename).getParentFile();
-                images = path.listFiles();
-                int selectedIndex = 0;
-                for(File imageFile : images){
-                    if(imageFile.toString().equals(imageFilename)){
-                        imageIndex = selectedIndex;
+                if(imageFilename != null) {
+                    File path = new File(imageFilename).getParentFile();
+                    images = path.listFiles();
+                    int selectedIndex = 0;
+                    for (File imageFile : images) {
+                        if (imageFile.toString().equals(imageFilename)) {
+                            imageIndex = selectedIndex;
+                        }
+                        selectedIndex++;
                     }
-                    selectedIndex++;
                 }
             }
         }else{
@@ -262,14 +258,16 @@ public class ImageViewActivity extends AppCompatActivity{
 
                 //Add images in the same directory as the selected image to the list
                 String imageFilename = getRealPathFromURI(uri);
-                File path = new File(imageFilename).getParentFile();
-                images = path.listFiles();
-                int selectedIndex = 0;
-                for(File imageFile : images){
-                    if(imageFile.toString().equals(imageFilename)){
-                        imageIndex = selectedIndex;
+                if(imageFilename != null) {
+                    File path = new File(imageFilename).getParentFile();
+                    images = path.listFiles();
+                    int selectedIndex = 0;
+                    for (File imageFile : images) {
+                        if (imageFile.toString().equals(imageFilename)) {
+                            imageIndex = selectedIndex;
+                        }
+                        selectedIndex++;
                     }
-                    selectedIndex++;
                 }
             }
         }
