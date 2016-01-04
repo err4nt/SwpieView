@@ -70,7 +70,7 @@ public class ImageViewActivity extends AppCompatActivity{
         @SuppressLint("InlinedApi")
         @Override
         public void run() {
-            // Delayed removal of status and navigation bar
+            // Delayed removal of status and navigation barQ
 
             // Note that some of these constants are new as of API 16 (Jelly Bean)
             // and API 19 (KitKat). It is safe to use them, as they are inlined
@@ -222,12 +222,14 @@ public class ImageViewActivity extends AppCompatActivity{
                 if(imageFilename != null) {
                     File path = new File(imageFilename).getParentFile();
                     images = path.listFiles();
-                    int selectedIndex = 0;
-                    for (File imageFile : images) {
-                        if (imageFile.toString().equals(imageFilename)) {
-                            imageIndex = selectedIndex;
+                    if(images != null) {
+                        int selectedIndex = 0;
+                        for (File imageFile : images) {
+                            if (imageFile.toString().equals(imageFilename)) {
+                                imageIndex = selectedIndex;
+                            }
+                            selectedIndex++;
                         }
-                        selectedIndex++;
                     }
                 }
             }
