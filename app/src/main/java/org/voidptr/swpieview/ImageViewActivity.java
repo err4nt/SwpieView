@@ -30,7 +30,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.ListIterator;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -64,8 +67,7 @@ public class ImageViewActivity extends AppCompatActivity{
     private final Handler mHideHandler = new Handler();
     private GifImageView mContentView;
     private GestureDetector gestureDetector;
-    private File[] images;
-    private int imageIndex = 0;
+    private ListIterator<File> imageIterator;
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -117,7 +119,7 @@ public class ImageViewActivity extends AppCompatActivity{
         }
     };
 
-    class CustomGestureDetector implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener{
+    private class CustomGestureDetector implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener{
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             try {
@@ -125,13 +127,14 @@ public class ImageViewActivity extends AppCompatActivity{
                     return false;
                 // right to left swipe
                 if(e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                    if(imageIndex < images.length)
-                        imageIndex++;
+                    if(imageIterator.hasNext()) {
+                        setImage(Uri.fromFile(imageIterator.next()));
+                    }
                 }  else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                    if(imageIndex > 0)
-                        imageIndex--;
+                    if(imageIterator.hasPrevious()) {
+                        setImage(Uri.fromFile(imageIterator.previous()));
+                    }
                 }
-                setImage(Uri.fromFile(images[imageIndex]));
             } catch (Exception e) {
                 // nothing
             }
@@ -214,24 +217,7 @@ public class ImageViewActivity extends AppCompatActivity{
 
         if (intent.getType() != null) {
             if(intent.getType().startsWith("image/")){
-                Uri imageURI = intent.getData();
-                setImage(imageURI);
-
-                //Add images in the same directory as the selected image to the list
-                String imageFilename = getRealPathFromURI(imageURI);
-                if(imageFilename != null) {
-                    File path = new File(imageFilename).getParentFile();
-                    images = path.listFiles();
-                    if(images != null) {
-                        int selectedIndex = 0;
-                        for (File imageFile : images) {
-                            if (imageFile.toString().equals(imageFilename)) {
-                                imageIndex = selectedIndex;
-                            }
-                            selectedIndex++;
-                        }
-                    }
-                }
+                buildFileList(intent);
             }
         }else{
             //Not opened by intent, so show the file selector
@@ -245,6 +231,20 @@ public class ImageViewActivity extends AppCompatActivity{
         }
     }
 
+    protected void buildFileList(Intent data)
+    {
+        Uri imageURI = data.getData();
+        setImage(imageURI);
+
+        //Add images in the same directory as the selected image to the list
+        String imageFilename = getRealPathFromURI(imageURI);
+        if(imageFilename != null) {
+            File path = new File(imageFilename).getParentFile();
+            ArrayList<File> images = new ArrayList<File>(Arrays.asList(path.listFiles()));
+            imageIterator = images.listIterator();
+        }
+    }
+
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
@@ -255,22 +255,7 @@ public class ImageViewActivity extends AppCompatActivity{
                 if(clip != null){
                 }
             }else{
-                Uri uri = data.getData();
-                setImage(uri);
-
-                //Add images in the same directory as the selected image to the list
-                String imageFilename = getRealPathFromURI(uri);
-                if(imageFilename != null) {
-                    File path = new File(imageFilename).getParentFile();
-                    images = path.listFiles();
-                    int selectedIndex = 0;
-                    for (File imageFile : images) {
-                        if (imageFile.toString().equals(imageFilename)) {
-                            imageIndex = selectedIndex;
-                        }
-                        selectedIndex++;
-                    }
-                }
+                buildFileList(data);
             }
         }
     }
