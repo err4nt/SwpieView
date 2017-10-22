@@ -5,4 +5,8 @@
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="action_settings">Action settings</string>
     <string name="start_stop_button">Start</string>
+    <string name="start_slideshow">Start Slideshow</string>
+    <string name="stop_slideshow">Stop Slideshow</string>
+    <string name="play_icon">▶</string>
+    <string name="pause_icon">⏸</string>
 </resources>

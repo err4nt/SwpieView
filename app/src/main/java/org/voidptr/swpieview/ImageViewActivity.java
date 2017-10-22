@@ -3,15 +3,13 @@ package org.voidptr.swpieview;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.content.ClipData;
 import android.content.ContentResolver;
-import android.content.CursorLoader;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
-import android.provider.MediaStore;
+import android.provider.DocumentsContract;
+import android.provider.DocumentsContract.Document;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -19,21 +17,17 @@ import android.os.Handler;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.webkit.MimeTypeMap;
 import android.widget.Button;
 
 import com.felipecsl.gifimageview.library.GifImageView;
-import com.nononsenseapps.filepicker.FilePickerActivity;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.ListIterator;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -47,6 +41,7 @@ public class ImageViewActivity extends AppCompatActivity{
     private static final boolean AUTO_HIDE = true;
 
     private static final int FILE_CODE = 403;
+    private static final int DIRECTORY_CODE = 404;
 
     /**
      * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
@@ -67,7 +62,8 @@ public class ImageViewActivity extends AppCompatActivity{
     private final Handler mHideHandler = new Handler();
     private GifImageView mContentView;
     private GestureDetector gestureDetector;
-    private ListIterator<File> imageIterator;
+    private ListIterator<ImageContainer> imageIterator;
+    private Timer slideshowTimer;
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -128,11 +124,11 @@ public class ImageViewActivity extends AppCompatActivity{
                 // right to left swipe
                 if(e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
                     if(imageIterator.hasNext()) {
-                        setImage(Uri.fromFile(imageIterator.next()));
+                        setImage(imageIterator.next());
                     }
                 }  else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
                     if(imageIterator.hasPrevious()) {
-                        setImage(Uri.fromFile(imageIterator.previous()));
+                        setImage(imageIterator.previous());
                     }
                 }
             } catch (Exception e) {
@@ -183,6 +179,7 @@ public class ImageViewActivity extends AppCompatActivity{
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -203,10 +200,7 @@ public class ImageViewActivity extends AppCompatActivity{
         startStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mContentView.isAnimating())
-                    mContentView.stopAnimation();
-                else
-                    mContentView.startAnimation();
+                toggleAnimating();
             }
         });
 
@@ -214,6 +208,27 @@ public class ImageViewActivity extends AppCompatActivity{
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.start_stop_button).setOnTouchListener(mDelayHideTouchListener);
+        findViewById(R.id.slideshow_button).setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                if(slideshowTimer == null) {
+                    slideshowTimer = new Timer();
+                    ((Button) findViewById(R.id.slideshow_button)).setText(R.string.start_slideshow);
+                    slideshowTimer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            setImage(imageIterator.next());
+                        }
+                    }, 20000);
+                }else{
+                    ((Button) findViewById(R.id.slideshow_button)).setText(R.string.stop_slideshow);
+                    slideshowTimer.cancel();
+                    slideshowTimer = null;
+                }
+
+                return true;
+            }
+        });
 
         if (intent.getType() != null) {
             if(intent.getType().startsWith("image/")){
@@ -221,82 +236,126 @@ public class ImageViewActivity extends AppCompatActivity{
             }
         }else{
             //Not opened by intent, so show the file selector
-            Intent i = new Intent(this, FilePickerActivity.class);
-            i.putExtra(FilePickerActivity.EXTRA_ALLOW_MULTIPLE, false);
-            i.putExtra(FilePickerActivity.EXTRA_ALLOW_CREATE_DIR, false);
-            i.putExtra(FilePickerActivity.EXTRA_MODE, FilePickerActivity.MODE_FILE_AND_DIR);
-            i.putExtra(FilePickerActivity.EXTRA_START_PATH, Environment.getExternalStorageDirectory().getPath());
+            Intent odIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            //odIntent.addCategory(Intent.CATEGORY_OPENABLE);
+            //odIntent.setType("image/*");
 
-            startActivityForResult(i, FILE_CODE);
+            startActivityForResult(odIntent, DIRECTORY_CODE);
+        }
+    }
+
+    protected void toggleAnimating()
+    {
+        if(mContentView.isAnimating())
+        {
+            stopAnimating();
+        }
+        else
+        {
+            startAnimating();
+        }
+    }
+
+    protected void startAnimating()
+    {
+        if(!mContentView.isAnimating()) {
+            mContentView.startAnimation();
+            ((Button) findViewById(R.id.start_stop_button)).setText(R.string.pause_icon);
+        }
+    }
+
+    protected void stopAnimating()
+    {
+        if(mContentView.isAnimating()) {
+            mContentView.stopAnimation();
+            ((Button) findViewById(R.id.start_stop_button)).setText(R.string.play_icon);
         }
     }
 
     protected void buildFileList(Intent data)
     {
-        Uri imageURI = data.getData();
-        setImage(imageURI);
+        ContentResolver contentResolver = getContentResolver();
+        Cursor childCursor = contentResolver.query(data.getData(), new String[]{
+                        Document.COLUMN_DOCUMENT_ID, Document.COLUMN_MIME_TYPE}, null, null, null);
+        assert childCursor != null;
+        childCursor.moveToFirst();
 
-        //Add images in the same directory as the selected image to the list
-        String imageFilename = getRealPathFromURI(imageURI);
-        if(imageFilename != null) {
-            File path = new File(imageFilename).getParentFile();
-            ArrayList<File> images = new ArrayList<File>(Arrays.asList(path.listFiles()));
-            imageIterator = images.listIterator();
-        }
+        ImageContainer container = new ImageContainer();
+        container.setUri(data.getData());
+        container.setMimeType(childCursor.getString(1));
+
+        setImage(container);
+
+        closeQuietly(childCursor);
     }
 
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         if(requestCode == FILE_CODE && resultCode == Activity.RESULT_OK){
-            if (data.getBooleanExtra(FilePickerActivity.EXTRA_ALLOW_MULTIPLE, false)) {
-                ClipData clip = data.getClipData();
+            setImage(new ImageContainer(data.getData()));
+        }else if(requestCode == DIRECTORY_CODE && resultCode == Activity.RESULT_OK){
+            Uri uri = data.getData();
+            ContentResolver contentResolver = getContentResolver();
+            Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri,
+                    DocumentsContract.getTreeDocumentId(uri));
 
-                if(clip != null){
+            Cursor childCursor = contentResolver.query(childrenUri, new String[]{
+                    Document.COLUMN_DOCUMENT_ID, Document.COLUMN_MIME_TYPE}, null, null, null);
+
+            try
+            {
+                ArrayList<ImageContainer> images = new ArrayList<>();
+                assert childCursor != null;
+                while(childCursor.moveToNext()){
+                    if (childCursor.getString(1).startsWith("image")) {
+                        ImageContainer container = new ImageContainer();
+                        container.setUri(DocumentsContract.buildChildDocumentsUriUsingTree(uri, childCursor.getString(0)));
+                        container.setMimeType(childCursor.getString(1));
+                        images.add(container);
+                    }
                 }
-            }else{
-                buildFileList(data);
+                imageIterator = images.listIterator();
+
+            }finally {
+                if(imageIterator.hasNext())
+                {
+                    setImage(imageIterator.next());
+                }
+                closeQuietly(childCursor);
             }
         }
     }
 
-    private void setImage(Uri imageUri){
-        ContentResolver cR = this.getContentResolver();
-        MimeTypeMap mime = MimeTypeMap.getSingleton();
-        String type = mime.getExtensionFromMimeType(cR.getType(imageUri));
-
-        if(mContentView.isAnimating())
-            mContentView.stopAnimation();
-
-        if((type != null && type.endsWith("gif")) || imageUri.toString().endsWith("gif")){
+    @TargetApi(Build.VERSION_CODES.KITKAT)
+    public void closeQuietly(AutoCloseable closeable) {
+        if (closeable != null) {
             try {
-                InputStream iStream = getContentResolver().openInputStream(imageUri);
+                closeable.close();
+            } catch (RuntimeException rethrown) {
+                throw rethrown;
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private void setImage(ImageContainer image){
+        stopAnimating();
+
+        if((image != null && image.getMimeType().endsWith("gif"))){
+            (findViewById(R.id.start_stop_button)).setEnabled(true);
+            try {
+                InputStream iStream = getContentResolver().openInputStream(image.getUri());
                 mContentView.setBytes(getBytes(iStream));
-                mContentView.startAnimation();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                startAnimating();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }else{
-            mContentView.setImageURI(imageUri);
+            (findViewById(R.id.start_stop_button)).setEnabled(false);
+            assert image != null;
+            mContentView.setImageURI(image.getUri());
         }
-    }
-
-    private String getRealPathFromURI(Uri contentUri) {
-        if(contentUri.getScheme().equals("content")) {
-            String[] proj = {MediaStore.Images.Media.DATA};
-            CursorLoader loader = new CursorLoader(this, contentUri, proj, null, null, null);
-            Cursor cursor = loader.loadInBackground();
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String result = cursor.getString(column_index);
-            cursor.close();
-            return result;
-        }else if(contentUri.getScheme().equals("file")){
-            return contentUri.getPath();
-        }
-        return null;
     }
 
     private static byte[] getBytes(InputStream inputStream) throws IOException {
