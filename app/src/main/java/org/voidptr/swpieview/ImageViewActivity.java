@@ -8,12 +8,14 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Debug;
 import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -278,11 +280,19 @@ public class ImageViewActivity extends AppCompatActivity{
         Cursor childCursor = contentResolver.query(data.getData(), new String[]{
                         Document.COLUMN_DOCUMENT_ID, Document.COLUMN_MIME_TYPE}, null, null, null);
         assert childCursor != null;
+
         childCursor.moveToFirst();
 
         ImageContainer container = new ImageContainer();
         container.setUri(data.getData());
-        container.setMimeType(childCursor.getString(1));
+        try {
+            container.setMimeType(childCursor.getString(1));
+        }catch (Exception e) {
+            //DJ: This fixes the issue with Conversations, but I'm not sure
+            //    its the best long term solution.
+            container.setMimeType(data.getType());
+        }
+
 
         setImage(container);
 

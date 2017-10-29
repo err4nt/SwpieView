@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SwpieView</string>
+
+    <string name="dummy_button">Bouton factice</string>
+    <string name="dummy_content">CONTENU\nFACTICE</string>
+    <!--<string name="action_settings">Action settings</string>-->
+    <string name="start_stop_button">Démarrer</string>
+    <string name="start_slideshow">Démarrer le diaporama</string>
+    <string name="stop_slideshow">Arrêter le diaporama</string>
+    <string name="play_icon">▶</string>
+    <string name="pause_icon">⏸</string>
+</resources>
