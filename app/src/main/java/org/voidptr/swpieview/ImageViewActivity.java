@@ -358,6 +358,8 @@ public class ImageViewActivity extends AppCompatActivity{
             }finally {
                 closeQuietly(childCursor);
             }
+        }else if(requestCode == DIRECTORY_CODE){
+            finish();
         }
     }
 
