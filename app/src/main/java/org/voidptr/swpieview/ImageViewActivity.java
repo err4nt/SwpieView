@@ -27,6 +27,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -342,6 +344,7 @@ public class ImageViewActivity extends AppCompatActivity{
                         images.add(container);
                     }
                 }
+                Collections.sort(images);
                 stack.setStack(images);
 
                 //This is... not great either, we need to show the image the user selected
