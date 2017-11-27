@@ -27,6 +27,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -64,7 +68,7 @@ public class ImageViewActivity extends AppCompatActivity{
     private final Handler mHideHandler = new Handler();
     private GifImageView mContentView;
     private GestureDetector gestureDetector;
-    private ListIterator<ImageContainer> imageIterator;
+    private ImageStack stack;
     private Timer slideshowTimer;
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
@@ -125,12 +129,12 @@ public class ImageViewActivity extends AppCompatActivity{
                     return false;
                 // right to left swipe
                 if(e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                    if(imageIterator.hasNext()) {
-                        setImage(imageIterator.next());
+                    if(stack.hasNext()) {
+                        setImage(stack.next());
                     }
                 }  else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                    if(imageIterator.hasPrevious()) {
-                        setImage(imageIterator.previous());
+                    if(stack.hasPrevious()) {
+                        setImage(stack.previous());
                     }
                 }
             } catch (Exception e) {
@@ -190,6 +194,8 @@ public class ImageViewActivity extends AppCompatActivity{
 
         Intent intent = getIntent();
 
+        stack = new ImageStack();
+
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = (GifImageView)findViewById(R.id.fullscreen_image);
@@ -219,7 +225,7 @@ public class ImageViewActivity extends AppCompatActivity{
                     slideshowTimer.schedule(new TimerTask() {
                         @Override
                         public void run() {
-                            setImage(imageIterator.next());
+                            setImage(stack.next());
                         }
                     }, 20000);
                 }else{
@@ -238,7 +244,9 @@ public class ImageViewActivity extends AppCompatActivity{
             }
         }else{
             //Not opened by intent, so show the file selector
-            Intent odIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            Intent odIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            odIntent.setType("image/*");
+            odIntent.addCategory(Intent.CATEGORY_OPENABLE);
             //odIntent.addCategory(Intent.CATEGORY_OPENABLE);
             //odIntent.setType("image/*");
 
@@ -305,7 +313,18 @@ public class ImageViewActivity extends AppCompatActivity{
         if(requestCode == FILE_CODE && resultCode == Activity.RESULT_OK){
             setImage(new ImageContainer(data.getData()));
         }else if(requestCode == DIRECTORY_CODE && resultCode == Activity.RESULT_OK){
-            Uri uri = data.getData();
+            Uri selectedUri = data.getData();
+
+            //DJ: This is... gross. This gets the URI of the selected file, changes "document" to
+            // "tree" and removes the file from the path to get the parent directory
+            Uri.Builder builder = selectedUri.buildUpon();
+            List<String> targetPathParts = selectedUri.getPathSegments();
+            String targetPath = targetPathParts.get(1);
+            targetPath = targetPath.substring(0, targetPath.lastIndexOf("/"));
+            builder.path("tree");
+            builder.appendPath(targetPath);
+            Uri uri = builder.build();
+
             ContentResolver contentResolver = getContentResolver();
             Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri,
                     DocumentsContract.getTreeDocumentId(uri));
@@ -325,15 +344,25 @@ public class ImageViewActivity extends AppCompatActivity{
                         images.add(container);
                     }
                 }
-                imageIterator = images.listIterator();
+                Collections.sort(images);
+                stack.setStack(images);
+
+                //This is... not great either, we need to show the image the user selected
+                // so we bang apart the paths and compare them since the URIs are different
+                List<String> searchParts = selectedUri.getPathSegments();
+                for (ImageContainer image : images) {
+                    List<String> pathParts = image.getUri().getPathSegments();
+                    if (searchParts.get(1).equals(pathParts.get(3))) {
+                        stack.selectImage(image);
+                        setImage(image);
+                    }
+                }
 
             }finally {
-                if(imageIterator.hasNext())
-                {
-                    setImage(imageIterator.next());
-                }
                 closeQuietly(childCursor);
             }
+        }else if(requestCode == DIRECTORY_CODE){
+            finish();
         }
     }
 
