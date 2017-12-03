@@ -8,8 +8,8 @@ android {
         applicationId "org.voidptr.swpieview"
         minSdkVersion 21
         targetSdkVersion 26
-        versionCode 1
-        versionName "1.0"
+        versionCode 13
+        versionName "1.3"
     }
     buildTypes {
         release {
