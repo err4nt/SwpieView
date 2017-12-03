@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
-    tools:context="voidptr.org.swpieview.ImageViewActivity">
+    android:theme="@style/FullscreenTheme"
+    tools:context="org.voidptr.swpieview.ImageViewActivity">
 
     <!-- The primary full-screen view. This can be replaced with whatever view
          is needed to present your content, e.g. VideoView, SurfaceView,
