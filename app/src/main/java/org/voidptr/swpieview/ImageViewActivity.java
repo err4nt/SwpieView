@@ -2,20 +2,12 @@ package org.voidptr.swpieview;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Build;
-import android.os.Debug;
-import android.provider.DocumentsContract;
-import android.provider.DocumentsContract.Document;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -26,12 +18,6 @@ import com.felipecsl.gifimageview.library.GifImageView;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -45,9 +31,6 @@ public class ImageViewActivity extends AppCompatActivity{
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
      */
     private static final boolean AUTO_HIDE = true;
-
-    private static final int FILE_CODE = 403;
-    private static final int DIRECTORY_CODE = 404;
 
     /**
      * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
@@ -194,7 +177,18 @@ public class ImageViewActivity extends AppCompatActivity{
 
         Intent intent = getIntent();
 
-        stack = new ImageStack();
+        if(intent.getBundleExtra("stack") != null){
+            stack = new ImageStack(this, intent.getBundleExtra("stack"));
+        } else {
+            stack = new ImageStack(this);
+            if(intent.getData() != null && intent.getType() != null) {
+                ImageContainer newImage = new ImageContainer();
+                newImage.setMimeType(intent.getType());
+                newImage.setUri(intent.getData());
+                stack.getStack().add(newImage);
+                stack.setIndex(0);
+            }
+        }
 
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
@@ -238,19 +232,8 @@ public class ImageViewActivity extends AppCompatActivity{
             }
         });
 
-        if (intent.getType() != null) {
-            if(intent.getType().startsWith("image/")){
-                buildFileList(intent);
-            }
-        }else{
-            //Not opened by intent, so show the file selector
-            Intent odIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            odIntent.setType("image/*");
-            odIntent.addCategory(Intent.CATEGORY_OPENABLE);
-            //odIntent.addCategory(Intent.CATEGORY_OPENABLE);
-            //odIntent.setType("image/*");
-
-            startActivityForResult(odIntent, DIRECTORY_CODE);
+        if(stack.getCount() > 0){
+            setImage(stack.getCurrent());
         }
     }
 
@@ -279,102 +262,6 @@ public class ImageViewActivity extends AppCompatActivity{
         if(mContentView.isAnimating()) {
             mContentView.stopAnimation();
             ((Button) findViewById(R.id.start_stop_button)).setText(R.string.play_icon);
-        }
-    }
-
-    protected void buildFileList(Intent data)
-    {
-        ContentResolver contentResolver = getContentResolver();
-        Cursor childCursor = contentResolver.query(data.getData(), new String[]{
-                        Document.COLUMN_DOCUMENT_ID, Document.COLUMN_MIME_TYPE}, null, null, null);
-        assert childCursor != null;
-
-        childCursor.moveToFirst();
-
-        ImageContainer container = new ImageContainer();
-        container.setUri(data.getData());
-        try {
-            container.setMimeType(childCursor.getString(1));
-        }catch (Exception e) {
-            //DJ: This fixes the issue with Conversations, but I'm not sure
-            //    its the best long term solution.
-            container.setMimeType(data.getType());
-        }
-
-
-        setImage(container);
-
-        closeQuietly(childCursor);
-    }
-
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data){
-        if(requestCode == FILE_CODE && resultCode == Activity.RESULT_OK){
-            setImage(new ImageContainer(data.getData()));
-        }else if(requestCode == DIRECTORY_CODE && resultCode == Activity.RESULT_OK){
-            Uri selectedUri = data.getData();
-
-            //DJ: This is... gross. This gets the URI of the selected file, changes "document" to
-            // "tree" and removes the file from the path to get the parent directory
-            Uri.Builder builder = selectedUri.buildUpon();
-            List<String> targetPathParts = selectedUri.getPathSegments();
-            String targetPath = targetPathParts.get(1);
-            targetPath = targetPath.substring(0, targetPath.lastIndexOf("/"));
-            builder.path("tree");
-            builder.appendPath(targetPath);
-            Uri uri = builder.build();
-
-            ContentResolver contentResolver = getContentResolver();
-            Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri,
-                    DocumentsContract.getTreeDocumentId(uri));
-
-            Cursor childCursor = contentResolver.query(childrenUri, new String[]{
-                    Document.COLUMN_DOCUMENT_ID, Document.COLUMN_MIME_TYPE}, null, null, null);
-
-            try
-            {
-                ArrayList<ImageContainer> images = new ArrayList<>();
-                assert childCursor != null;
-                while(childCursor.moveToNext()){
-                    if (childCursor.getString(1).startsWith("image")) {
-                        ImageContainer container = new ImageContainer();
-                        container.setUri(DocumentsContract.buildChildDocumentsUriUsingTree(uri, childCursor.getString(0)));
-                        container.setMimeType(childCursor.getString(1));
-                        images.add(container);
-                    }
-                }
-                Collections.sort(images);
-                stack.setStack(images);
-
-                //This is... not great either, we need to show the image the user selected
-                // so we bang apart the paths and compare them since the URIs are different
-                List<String> searchParts = selectedUri.getPathSegments();
-                for (ImageContainer image : images) {
-                    List<String> pathParts = image.getUri().getPathSegments();
-                    if (searchParts.get(1).equals(pathParts.get(3))) {
-                        stack.selectImage(image);
-                        setImage(image);
-                    }
-                }
-
-            }finally {
-                closeQuietly(childCursor);
-            }
-        }else if(requestCode == DIRECTORY_CODE){
-            finish();
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    public void closeQuietly(AutoCloseable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (RuntimeException rethrown) {
-                throw rethrown;
-            } catch (Exception ignored) {
-            }
         }
     }
 
