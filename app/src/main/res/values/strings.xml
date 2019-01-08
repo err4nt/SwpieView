@@ -4,10 +4,10 @@
 
     <string name="action_settings">Settings</string>
     <string name="start_stop_button">Start</string>
-    <string name="start_slideshow">Start Slideshow</string>
-    <string name="stop_slideshow">Stop Slideshow</string>
+    <string name="start_slideshow">Start slideshow</string>
+    <string name="stop_slideshow">Stop slideshow</string>
     <string name="play_icon">▶</string>
-	<string name="pause_icon">⏸</string>
-	<string name="dummy_button">Dummy button</string>
-	<string name="dummy_content">Dummy content</string>
+    <string name="pause_icon">⏸</string>
+    <string name="dummy_button">Dummy button</string>
+    <string name="dummy_content">Dummy content</string>
 </resources>

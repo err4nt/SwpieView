@@ -1,9 +1,6 @@
 package org.voidptr.swpieview;
 
 import android.content.Context;
-import android.graphics.BitmapFactory;
-import android.graphics.Rect;
-import android.media.Image;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +11,7 @@ import android.widget.ImageView;
 import java.util.ArrayList;
 
 /**
- * Represents the current stack of images being displayed 
+ * Represents the current stack of images being displayed
  */
 
 public class ImageStack extends BaseAdapter {
@@ -22,82 +19,89 @@ public class ImageStack extends BaseAdapter {
     private Integer index;
     private Context context;
 
-	/**
-	 * Create a new empty <code>ImageStack</code>
-	 */
-    ImageStack(Context context){
+    /**
+     * Create a new empty <code>ImageStack</code>
+     */
+    ImageStack(Context context) {
         stack = new ArrayList<>();
         index = 0;
         this.context = context;
     }
 
-    ImageStack(Context context, Bundle fromBundle){
+    ImageStack(Context context, Bundle fromBundle) {
         this.context = context;
         this.stack = fromBundle.getParcelableArrayList("stack");
         this.index = fromBundle.getInt("index");
     }
 
-	/**
-	 * Get the current list of <code>ImageContainer</code> objects
-	 * @return List of <code>ImageContainer</code> objects
-	 */
+    /**
+     * Get the current list of <code>ImageContainer</code> objects
+     *
+     * @return List of <code>ImageContainer</code> objects
+     */
     public ArrayList<ImageContainer> getStack() {
         return stack;
     }
 
-	/**
-	 * Set the current list of images and set index to 0
-	 * @param stack List of <code>ImageContainer</code> objects
-	 */
+    /**
+     * Set the current list of images and set index to 0
+     *
+     * @param stack List of <code>ImageContainer</code> objects
+     */
     void setStack(ArrayList<ImageContainer> stack) {
         this.stack = stack;
         index = 0;
     }
 
-	/**
-	 * Go to the next image in the list and return it
-	 * @return <code>ImageContainer</code>
-	 */
-    ImageContainer next(){
-        if(index < stack.size()){
+    /**
+     * Go to the next image in the list and return it
+     *
+     * @return <code>ImageContainer</code>
+     */
+    ImageContainer next() {
+        if (index < stack.size()) {
             index++;
         }
         return stack.get(index);
     }
 
-	/**
-	 * Go to the previous image in the list and return it
-	 * @return <code>ImageContainer</code>
-	 */
-    ImageContainer previous(){
-        if(index > 0){
+    /**
+     * Go to the previous image in the list and return it
+     *
+     * @return <code>ImageContainer</code>
+     */
+    ImageContainer previous() {
+        if (index > 0) {
             index--;
         }
         return stack.get(index);
     }
 
-	/**
-	 * Go to the first image in the list and return it
-	 * @return <code>ImageContainer</code>
-	 */
-    public ImageContainer first(){
+    /**
+     * Go to the first image in the list and return it
+     *
+     * @return <code>ImageContainer</code>
+     */
+    public ImageContainer first() {
         index = 0;
         return stack.get(index);
     }
 
-	/**
-	 * Return true if there are more images in the list
-	 * @return <code>boolean</code> 
-	 */
-    boolean hasNext(){
-        return (index < stack.size()-1);
+    /**
+     * Return true if there are more images in the list
+     *
+     * @return <code>boolean</code>
+     */
+    boolean hasNext() {
+        return (index < stack.size() - 1);
     }
 
-	/**
-	 * Return true if there are images before the current image
-	 * @return <code>boolean</code>
-	 */
-    boolean hasPrevious(){
+    /**
+     * Return true if there are images before the current image
+     *
+     * @return <code>boolean</code>
+     */
+    boolean hasPrevious() {
         return (index >= 0);
     }
 
@@ -105,15 +109,16 @@ public class ImageStack extends BaseAdapter {
         this.index = index;
     }
 
-    ImageContainer getCurrent(){
+    ImageContainer getCurrent() {
         return stack.get(index);
     }
 
-	/**
-	 * Go to a specific image. Note that selected instance must come from the stack.
-	 * @param selected <code>ImageContainer</code>
-	 */
-    public void selectImage(ImageContainer selected){
+    /**
+     * Go to a specific image. Note that selected instance must come from the stack.
+     *
+     * @param selected <code>ImageContainer</code>
+     */
+    public void selectImage(ImageContainer selected) {
         index = stack.indexOf(selected);
     }
 
@@ -144,11 +149,11 @@ public class ImageStack extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         ImageView imageView;
-        if(convertView == null) {
+        if (convertView == null) {
             imageView = new ImageView(context);
             imageView.setLayoutParams(new GridView.LayoutParams(120, 120));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            imageView.setPadding(8, 8,8, 8);
+            imageView.setPadding(8, 8, 8, 8);
         } else {
             imageView = (ImageView) convertView;
         }

@@ -20,7 +20,7 @@ import java.util.List;
 public class ImageContainer implements Comparable<ImageContainer>, Parcelable {
     private Bitmap thumbnail;
 
-    ImageContainer(){
+    ImageContainer() {
     }
 
     private ImageContainer(Parcel in) {
@@ -65,12 +65,12 @@ public class ImageContainer implements Comparable<ImageContainer>, Parcelable {
         List<String> thisPathParts = uri.getPathSegments();
         String thisPath = thisPathParts.get(3);
         String thisFilename = thisPath.substring(thisPath
-                .lastIndexOf("/")+1, thisPath.length());
+                .lastIndexOf("/") + 1, thisPath.length());
 
         List<String> thatPathParts = imageContainer.getUri().getPathSegments();
         String thatPath = thatPathParts.get(3);
         String thatFilename = thatPath.substring(thatPath
-                .lastIndexOf("/")+1, thatPath.length());
+                .lastIndexOf("/") + 1, thatPath.length());
 
         return thisFilename.compareTo(thatFilename);
     }
@@ -87,7 +87,7 @@ public class ImageContainer implements Comparable<ImageContainer>, Parcelable {
     }
 
     Bitmap getThumbnail(Context context) {
-        if(thumbnail == null) {
+        if (thumbnail == null) {
             try {
                 InputStream stream = context.getContentResolver().openInputStream(getUri());
                 BitmapFactory.Options options = new BitmapFactory.Options();
@@ -98,6 +98,6 @@ public class ImageContainer implements Comparable<ImageContainer>, Parcelable {
                 e.printStackTrace();
             }
         }
-        return  thumbnail;
+        return thumbnail;
     }
 }

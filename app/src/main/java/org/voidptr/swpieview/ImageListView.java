@@ -10,8 +10,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.support.v7.app.AppCompatActivity;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.GridView;
 
 import java.util.ArrayList;
@@ -29,19 +27,16 @@ public class ImageListView extends AppCompatActivity {
 
         stack = new ImageStack(this);
 
-        ((GridView)findViewById(R.id.imageListGridView)).setOnItemClickListener(
-                new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                stack.setIndex(position);
-                Intent viewIntent = new Intent(ImageListView.this,
-                        ImageViewActivity.class);
-                viewIntent.putExtra("stack", stack.toBundle());
-                startActivity(viewIntent);
-            }
-        });
+        ((GridView) findViewById(R.id.imageListGridView)).setOnItemClickListener(
+                (parent, view, position, id) -> {
+                    stack.setIndex(position);
+                    Intent viewIntent = new Intent(ImageListView.this,
+                            ImageViewActivity.class);
+                    viewIntent.putExtra("stack", stack.toBundle());
+                    startActivity(viewIntent);
+                });
 
-        if(getIntent().getType() == null){
+        if (getIntent().getType() == null) {
             Intent odIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             startActivityForResult(odIntent, DIRECTORY_CODE);
         }
@@ -49,7 +44,7 @@ public class ImageListView extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == DIRECTORY_CODE && resultCode == Activity.RESULT_OK){
+        if (requestCode == DIRECTORY_CODE && resultCode == Activity.RESULT_OK) {
             Uri uri = data.getData();
 
             ContentResolver contentResolver = getContentResolver();
@@ -58,17 +53,16 @@ public class ImageListView extends AppCompatActivity {
 
             Cursor childCursor = contentResolver.query(childrenUri,
                     new String[]{
-                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                    DocumentsContract.Document.COLUMN_MIME_TYPE},
+                            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                            DocumentsContract.Document.COLUMN_MIME_TYPE},
                     null,
                     null,
                     null);
 
-            try
-            {
+            try {
                 ArrayList<ImageContainer> images = new ArrayList<>();
                 assert childCursor != null;
-                while(childCursor.moveToNext()){
+                while (childCursor.moveToNext()) {
                     if (childCursor.getString(1).startsWith("image")) {
                         ImageContainer container = new ImageContainer();
                         container.setUri(DocumentsContract
@@ -80,11 +74,11 @@ public class ImageListView extends AppCompatActivity {
                 }
                 Collections.sort(images);
                 stack.setStack(images);
-                ((GridView)findViewById(R.id.imageListGridView)).setAdapter(stack);
-            }finally {
+                ((GridView) findViewById(R.id.imageListGridView)).setAdapter(stack);
+            } finally {
                 closeQuietly(childCursor);
             }
-        }else if(requestCode == DIRECTORY_CODE){
+        } else if (requestCode == DIRECTORY_CODE) {
             finish();
         }
     }

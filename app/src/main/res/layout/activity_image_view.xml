@@ -10,9 +10,9 @@
          is needed to present your content, e.g. VideoView, SurfaceView,
          TextureView, etc. -->
     <com.felipecsl.gifimageview.library.GifImageView
+        android:id="@+id/fullscreen_image"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/fullscreen_image" />
+        android:layout_height="match_parent" />
 
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->

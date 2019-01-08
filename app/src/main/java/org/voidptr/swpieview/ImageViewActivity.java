@@ -4,13 +4,16 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.os.Build;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.view.GestureDetector;
+import android.view.GestureDetector.OnDoubleTapListener;
+import android.view.GestureDetector.OnGestureListener;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnTouchListener;
 import android.widget.Button;
 
 import com.felipecsl.gifimageview.library.GifImageView;
@@ -25,7 +28,7 @@ import java.util.TimerTask;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class ImageViewActivity extends AppCompatActivity{
+public class ImageViewActivity extends AppCompatActivity {
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -83,40 +86,33 @@ public class ImageViewActivity extends AppCompatActivity{
         }
     };
     private boolean mVisible;
-    private final Runnable mHideRunnable = new Runnable() {
-        @Override
-        public void run() {
-            hide();
-        }
-    };
+    private final Runnable mHideRunnable = this::hide;
     /**
      * Touch listener to use for in-layout UI controls to delay hiding the
      * system UI. This is to prevent the jarring behavior of controls going away
      * while interacting with activity UI.
      */
-    private final View.OnTouchListener mDelayHideTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (AUTO_HIDE) {
-                delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            }
-            return false;
+    @SuppressLint("ClickableViewAccessibility")
+    private final OnTouchListener mDelayHideTouchListener = (view, motionEvent) -> {
+        if (AUTO_HIDE) {
+            delayedHide(AUTO_HIDE_DELAY_MILLIS);
         }
+        return false;
     };
 
-    private class CustomGestureDetector implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener{
+    private class CustomGestureDetector implements OnGestureListener, OnDoubleTapListener {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             try {
                 if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH)
                     return false;
                 // right to left swipe
-                if(e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                    if(stack.hasNext()) {
+                if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                    if (stack.hasNext()) {
                         setImage(stack.next());
                     }
-                }  else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                    if(stack.hasPrevious()) {
+                } else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                    if (stack.hasPrevious()) {
                         setImage(stack.previous());
                     }
                 }
@@ -133,7 +129,6 @@ public class ImageViewActivity extends AppCompatActivity{
 
         @Override
         public void onShowPress(MotionEvent e) {
-
         }
 
         @Override
@@ -148,7 +143,6 @@ public class ImageViewActivity extends AppCompatActivity{
 
         @Override
         public void onLongPress(MotionEvent e) {
-
         }
 
         @Override
@@ -168,6 +162,7 @@ public class ImageViewActivity extends AppCompatActivity{
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -177,11 +172,11 @@ public class ImageViewActivity extends AppCompatActivity{
 
         Intent intent = getIntent();
 
-        if(intent.getBundleExtra("stack") != null){
+        if (intent.getBundleExtra("stack") != null) {
             stack = new ImageStack(this, intent.getBundleExtra("stack"));
         } else {
             stack = new ImageStack(this);
-            if(intent.getData() != null && intent.getType() != null) {
+            if (intent.getData() != null && intent.getType() != null) {
                 ImageContainer newImage = new ImageContainer();
                 newImage.setMimeType(intent.getType());
                 newImage.setUri(intent.getData());
@@ -192,83 +187,69 @@ public class ImageViewActivity extends AppCompatActivity{
 
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
-        mContentView = (GifImageView)findViewById(R.id.fullscreen_image);
+        mContentView = findViewById(R.id.fullscreen_image);
 
         CustomGestureDetector cgdt = new CustomGestureDetector();
         gestureDetector = new GestureDetector(this, cgdt);
         gestureDetector.setOnDoubleTapListener(cgdt);
 
-        Button startStopButton = (Button)findViewById(R.id.start_stop_button);
-        startStopButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggleAnimating();
-            }
-        });
+        Button startStopButton = findViewById(R.id.start_stop_button);
+        startStopButton.setOnClickListener(v -> toggleAnimating());
 
         // Upon interacting with UI controls, delay any scheduled hide()
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.start_stop_button).setOnTouchListener(mDelayHideTouchListener);
-        findViewById(R.id.slideshow_button).setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if(slideshowTimer == null) {
-                    slideshowTimer = new Timer();
-                    ((Button) findViewById(R.id.slideshow_button)).setText(R.string.start_slideshow);
-                    slideshowTimer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            setImage(stack.next());
-                        }
-                    }, 20000);
-                }else{
-                    ((Button) findViewById(R.id.slideshow_button)).setText(R.string.stop_slideshow);
-                    slideshowTimer.cancel();
-                    slideshowTimer = null;
-                }
-
-                return true;
+        findViewById(R.id.slideshow_button).setOnTouchListener((view, motionEvent) -> {
+            if (slideshowTimer == null) {
+                slideshowTimer = new Timer();
+                ((Button) findViewById(R.id.slideshow_button)).setText(R.string.start_slideshow);
+                slideshowTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        setImage(stack.next());
+                    }
+                }, 20000);
+            } else {
+                ((Button) findViewById(R.id.slideshow_button)).setText(R.string.stop_slideshow);
+                slideshowTimer.cancel();
+                slideshowTimer = null;
             }
+
+            return true;
         });
 
-        if(stack.getCount() > 0){
+        if (stack.getCount() > 0) {
             setImage(stack.getCurrent());
         }
     }
 
-    protected void toggleAnimating()
-    {
-        if(mContentView.isAnimating())
-        {
+    protected void toggleAnimating() {
+        if (mContentView.isAnimating()) {
             stopAnimating();
-        }
-        else
-        {
+        } else {
             startAnimating();
         }
     }
 
-    protected void startAnimating()
-    {
-        if(!mContentView.isAnimating()) {
+    protected void startAnimating() {
+        if (!mContentView.isAnimating()) {
             mContentView.startAnimation();
             ((Button) findViewById(R.id.start_stop_button)).setText(R.string.pause_icon);
         }
     }
 
-    protected void stopAnimating()
-    {
-        if(mContentView.isAnimating()) {
+    protected void stopAnimating() {
+        if (mContentView.isAnimating()) {
             mContentView.stopAnimation();
             ((Button) findViewById(R.id.start_stop_button)).setText(R.string.play_icon);
         }
     }
 
-    private void setImage(ImageContainer image){
+    private void setImage(ImageContainer image) {
         stopAnimating();
 
-        if((image != null && image.getMimeType().endsWith("gif"))){
+        if ((image != null && image.getMimeType().endsWith("gif"))) {
             (findViewById(R.id.start_stop_button)).setEnabled(true);
             try {
                 InputStream iStream = getContentResolver().openInputStream(image.getUri());
@@ -277,7 +258,7 @@ public class ImageViewActivity extends AppCompatActivity{
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else{
+        } else {
             (findViewById(R.id.start_stop_button)).setEnabled(false);
             assert image != null;
             mContentView.setImageURI(image.getUri());
